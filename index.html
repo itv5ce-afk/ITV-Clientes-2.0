@@ -415,8 +415,8 @@
     <div id="adminPanel" class="mb-4 p-2">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
             <h5 class="m-0"><i class="bi bi-cash-stack text-success"></i> Financeiro</h5>
-            <!-- ALTERADO: Voltou para type="month" para exibir MM/AAAA e permitir ciclo mensal -->
-            <input type="month" id="filterMes" class="form-control w-auto bg-dark text-white border-secondary" style="max-width: 170px;">
+            <!-- ALTERADO: type="date" para exibir DD/MM/AAAA, mantendo a lógica de ciclo mensal no JS -->
+            <input type="date" id="filterMes" class="form-control w-auto bg-dark text-white border-secondary" style="max-width: 170px;">
         </div>
         <div class="row g-2">
             <div class="col-6 col-md-3"><div class="card-financeiro"><div class="stat-label">Recebido (Mês)</div><div class="stat-val" id="finRecebido">R$ 0,00</div></div></div>
@@ -525,8 +525,8 @@
     let currentFilter = 'ativos';
     let usuarioLogadoUid = null;
 
-    // ALTERADO: Inicializa com o mês/ano atual (YYYY-MM) para o ciclo mensal
-    document.getElementById('filterMes').value = new Date().toISOString().slice(0, 7);
+    // ALTERADO: Inicializa com a data atual (YYYY-MM-DD) para exibir DD/MM/AAAA no input
+    document.getElementById('filterMes').value = new Date().toISOString().slice(0, 10);
     
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -963,13 +963,13 @@
         else alert("Telefone não informado.");
     }
     
-    // ALTERADO: Função financeira agora opera em ciclo MENSAL
-    // - "Recebido (Mês)" soma todos os pagamentos confirmados (ultimoPagamento) dentro do mês selecionado
-    // - No dia 1 de cada mês, automaticamente zera, pois nenhum cliente terá pagamento no novo mês
-    // - Inicia novo ciclo somando as renovações/pagamentos até fechar o mês
-    // - A RECEBER = LUCRO GERAL - RECEBIDO (MÊS)
+    // ALTERADO: Função financeira agora opera em ciclo MENSAL baseado na data selecionada (DD/MM/AAAA)
+    // - Extrai o YYYY-MM da data selecionada para manter a estrutura de ciclo mensal já criada
+    // - "Recebido (Mês)" soma todos os pagamentos confirmados (ultimoPagamento) dentro do mês da data escolhida
     function renderFinanceiro() {
-        const mesFiltro = document.getElementById('filterMes').value; // formato YYYY-MM
+        const dataFiltro = document.getElementById('filterMes').value; // formato YYYY-MM-DD
+        // Extrai YYYY-MM para manter a estrutura de ciclo mensal já criada
+        const mesFiltro = dataFiltro.slice(0, 7); 
         let recebidoMes = 0;
         let totalGeral = 0;
         let totalActive = 0;
@@ -980,7 +980,7 @@
                 totalGeral += val;
                 totalActive++;
                 
-                // Verifica se o último pagamento ocorreu no mês selecionado
+                // Verifica se o último pagamento ocorreu no mês da data selecionada
                 // ultimoPagamento é ISO string (YYYY-MM-DDTHH:mm:ss.sssZ), então startsWith(YYYY-MM) funciona
                 const temPagamentoNoMes = c.ultimoPagamento && c.ultimoPagamento.startsWith(mesFiltro);
                 
