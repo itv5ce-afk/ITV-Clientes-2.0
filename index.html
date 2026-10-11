@@ -525,8 +525,12 @@
     let currentFilter = 'ativos';
     let usuarioLogadoUid = null;
 
-    // ALTERADO: Inicializa com a data atual (YYYY-MM-DD) para exibir DD/MM/AAAA no input
-    document.getElementById('filterMes').value = new Date().toISOString().slice(0, 10);
+    // ALTERADO: Inicializa com a data local atual (YYYY-MM-DD) para mudar apenas após 00:00 horas locais
+    const hojeLocal = new Date();
+    const anoLocal = hojeLocal.getFullYear();
+    const mesLocal = String(hojeLocal.getMonth() + 1).padStart(2, '0');
+    const diaLocal = String(hojeLocal.getDate()).padStart(2, '0');
+    document.getElementById('filterMes').value = `${anoLocal}-${mesLocal}-${diaLocal}`;
     
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -768,7 +772,11 @@
     function addOneMonthFromToday() {
         let hoje = new Date();
         hoje.setMonth(hoje.getMonth() + 1);
-        return hoje.toISOString().split('T')[0];
+        // Formatação para data local, evitando virada de dia às 21h (UTC)
+        const ano = hoje.getFullYear();
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoje.getDate()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}`;
     }
     
     function formatarDataBR(dataISO) {
@@ -904,7 +912,11 @@
         const hoje = new Date();
         
         clientes.forEach(c => {
-            let dataVenc = new Date(c.data);            let diffDays = Math.ceil((dataVenc - hoje) / (1000*3600*24));
+            // ALTERADO: Parsing da data como horário local para evitar bug de virada de dia (UTC)
+            let partes = c.data.split('-');
+            let dataVenc = new Date(partes[0], partes[1] - 1, partes[2]);
+            let diffDays = Math.ceil((dataVenc - hoje) / (1000*3600*24));
+            
             let statusReal = c.status;
             if(c.status !== 'deletado' && c.status !== 'apagar') {
                 if(diffDays < 0) statusReal = 'expirado';
@@ -957,15 +969,13 @@
         if(c.tel) window.open(`https://wa.me/${c.tel.replace(/\D/g,'')}?text=${encodeURIComponent(msgCobranca)}`);
         else alert("Número não cadastrado!");
     }
-        function openWhatsApp(id) {
+    function openWhatsApp(id) {
         const c = clientes.find(i => i.id === id);
         if(c && c.tel) window.open(`https://wa.me/${c.tel.replace(/\D/g,'')}`);
         else alert("Telefone não informado.");
     }
     
-    // ALTERADO: Função financeira agora opera em ciclo MENSAL baseado na data selecionada (DD/MM/AAAA)
-    // - Extrai o YYYY-MM da data selecionada para manter a estrutura de ciclo mensal já criada
-    // - "Recebido (Mês)" soma todos os pagamentos confirmados (ultimoPagamento) dentro do mês da data escolhida
+    // ALTERADO: Função financeira agora opera em ciclo MENSAL baseado na data local selecionada
     function renderFinanceiro() {
         const dataFiltro = document.getElementById('filterMes').value; // formato YYYY-MM-DD
         // Extrai YYYY-MM para manter a estrutura de ciclo mensal já criada
@@ -980,11 +990,16 @@
                 totalGeral += val;
                 totalActive++;
                 
-                // Verifica se o último pagamento ocorreu no mês da data selecionada
-                // ultimoPagamento é ISO string (YYYY-MM-DDTHH:mm:ss.sssZ), então startsWith(YYYY-MM) funciona
-                const temPagamentoNoMes = c.ultimoPagamento && c.ultimoPagamento.startsWith(mesFiltro);
+                // Verifica se o último pagamento ocorreu no mês da data selecionada (em horário local)
+                let mesPagamentoLocal = "";
+                if (c.ultimoPagamento) {
+                    const dataPagamento = new Date(c.ultimoPagamento);
+                    const ano = dataPagamento.getFullYear();
+                    const mes = String(dataPagamento.getMonth() + 1).padStart(2, '0');
+                    mesPagamentoLocal = `${ano}-${mes}`;
+                }
                 
-                if(temPagamentoNoMes) {
+                if(mesPagamentoLocal === mesFiltro) {
                     recebidoMes += val;
                 }
             }
