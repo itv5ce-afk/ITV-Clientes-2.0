@@ -779,6 +779,37 @@
         return `${ano}-${mes}-${dia}`;
     }
     
+    // ===== NOVA FUNÇÃO: Adiciona 1 mês à data de vencimento cadastrada =====
+    // Se a data base for 01/01/2026, o próximo vencimento será 01/02/2026
+    function addOneMonthFromDate(dataISO) {
+        let base;
+        if (dataISO) {
+            let partes = dataISO.split('-');
+            base = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+        } else {
+            base = new Date();
+        }
+        const diaOriginal = base.getDate();
+        base.setMonth(base.getMonth() + 1);
+        // Ajusta caso o dia não exista no mês seguinte (ex: 31/01 -> 28/02)
+        if (base.getDate() !== diaOriginal) {
+            base.setDate(0);
+        }
+        // Se mesmo após somar 1 mês a data continuar no passado, avança a partir de hoje
+        const hoje = new Date();
+        hoje.setHours(0,0,0,0);
+        if (base < hoje) {
+            base = new Date();
+            const diaOrig2 = base.getDate();
+            base.setMonth(base.getMonth() + 1);
+            if (base.getDate() !== diaOrig2) base.setDate(0);
+        }
+        const ano = base.getFullYear();
+        const mes = String(base.getMonth() + 1).padStart(2, '0');
+        const dia = String(base.getDate()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}`;
+    }
+    
     function formatarDataBR(dataISO) {
         if(!dataISO) return "";
         let partes = dataISO.split('-');
@@ -794,10 +825,19 @@
         const painel = cliente.painel || 'central';
         if(!consumirCredito(painel)) return;
         // =====================================
-        const novaDataISO = addOneMonthFromToday();
+
+        // ===== NOVA LÓGICA: Data base = Data Vencimento atual + 1 mês =====
+        const novaDataISO = addOneMonthFromDate(cliente.data);
         const novaDataBR = formatarDataBR(novaDataISO);
         const valorFormat = `R$ ${cliente.valor.toFixed(2)}`;
-        const msg = `✅𝕊𝔼𝕌 ℙ𝔸𝔾𝔸𝕄𝔼ℕ𝕋𝕆 𝔽𝕆𝕀 ℂ𝕆ℕ𝔽𝕀ℝ𝕄𝔸𝔻𝕆!!\n\nNome: ${cliente.nome}\nPlano Familia: ${valorFormat}\nProvedor: ${cliente.serv || 'ITV'}\nUsuário: ${cliente.user}\nSenha: ${cliente.pass}\nUrl: ${cliente.url}\nVence: ${novaDataBR}\n\nDivirta-se!!`;
+
+        // ===== NOVO: Provedor = nome do painel onde o cliente será renovado =====
+        let nomePainel = 'CENTRAL';
+        if (painel === 'warez') nomePainel = config.nomePainel2 || 'WAREZ';
+        else if (painel === 'zeus') nomePainel = config.nomePainel3 || 'ZEUS';
+        else nomePainel = config.nomePainel1 || 'CENTRAL';
+
+        const msg = `✅𝕊𝔼𝕌 ℙ𝔸𝔾𝔸𝕄𝔼ℕ𝕋𝕆 𝔽𝕆𝕀 ℂ𝕆ℕ𝔽𝕀ℝ𝕄𝔸𝔻𝕆!!\n\nNome: ${cliente.nome}\nPlano Familia: ${valorFormat}\nProvedor: ${nomePainel}\nUsuário: ${cliente.user}\nSenha: ${cliente.pass}\nUrl: ${cliente.url}\nVence: ${novaDataBR}\n\nDivirta-se!!`;
         if(cliente.tel) {
             window.open(`https://wa.me/${cliente.tel.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`);
         } else alert("Número não cadastrado!");
