@@ -466,7 +466,8 @@
                 <select id="cPainel" class="form-control form-select mb-2">
                     <option value="central">📡 CENTRAL</option>
                     <option value="warez">⚡ WAREZ</option>
-                    <option value="zeus">🔥 ZEUS</option>                </select>
+                    <option value="zeus">🔥 ZEUS</option>                    <option value="itvplayer">🎬 ITVPlayer</option>
+                </select>
                 <label class="small">Observações:</label><textarea id="cObs" class="form-control mb-2" rows="2"></textarea>
                 <button class="btn btn-success w-100 mt-2 rounded-pill" onclick="saveCliente()">Salvar Cliente</button>
             </div>
@@ -835,6 +836,7 @@
         let nomePainel = 'CENTRAL';
         if (painel === 'warez') nomePainel = config.nomePainel2 || 'WAREZ';
         else if (painel === 'zeus') nomePainel = config.nomePainel3 || 'ZEUS';
+        else if (painel === 'itvplayer') nomePainel = 'ITVPlayer';
         else nomePainel = config.nomePainel1 || 'CENTRAL';
 
         const msg = `✅𝕊𝔼𝕌 ℙ𝔸𝔾𝔸𝕄𝔼ℕ𝕋𝕆 𝔽𝕆𝕀 ℂ𝕆ℕ𝔽𝕀ℝ𝕄𝔸𝔻𝕆!!\n\nNome: ${cliente.nome}\nPlano Familia: ${valorFormat}\nProvedor: ${nomePainel}\nUsuário: ${cliente.user}\nSenha: ${cliente.pass}\nUrl: ${cliente.url}\nVence: ${novaDataBR}\n\nDivirta-se!!`;
