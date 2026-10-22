@@ -946,6 +946,37 @@
                 display: none !important;
             }
         }
+
+        /* ============================================================
+           NOVOS ESTILOS — Cards financeiros clicáveis e modal de lista
+           ============================================================ */
+        .card-financeiro-clickable { cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease; position: relative; }
+        .card-financeiro-clickable:hover { transform: translateY(-2px); border-color: #9933ff; }
+        .card-financeiro-clickable:active { transform: scale(0.98); }
+        .card-financeiro-clickable::after {
+            content: "\F285";
+            font-family: "bootstrap-icons";
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            font-size: 0.75rem;
+            color: #666;
+            opacity: 0.7;
+        }
+        .desktop-stat-card-clickable { cursor: pointer; }
+        .desktop-stat-card-clickable:hover { border-color: #9933ff; }
+        .lista-fin-item {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .lista-fin-item:hover { border-color: #9933ff; transform: translateX(2px); }
+        .lista-fin-item:active { transform: scale(0.99); }
+        .lista-fin-empty { text-align: center; color: #888; padding: 40px 10px; }
     </style>
 </head>
 <body>
@@ -1135,10 +1166,28 @@
                     <input type="date" id="filterMes" class="form-control w-auto bg-dark text-white border-secondary" style="max-width: 170px;">
                 </div>
                 <div class="row g-2">
-                    <div class="col-6 col-md-3"><div class="card-financeiro"><div class="stat-label">Recebido (Mês)</div><div class="stat-val" id="finRecebido">R$ 0,00</div></div></div>
-                    <div class="col-6 col-md-3"><div class="card-financeiro" style="border-left-color: #ffc107;"><div class="stat-label">A Receber</div><div class="stat-val text-warning" id="finPendente">R$ 0,00</div></div></div>
+                    <!-- ✅ CARD RECEBIDO - CLICÁVEL -->
+                    <div class="col-6 col-md-3">
+                        <div class="card-financeiro card-financeiro-clickable" onclick="abrirListaFinanceiro('recebido')" title="Clique para ver os clientes que pagaram neste mês">
+                            <div class="stat-label">Recebido (Mês)</div>
+                            <div class="stat-val" id="finRecebido">R$ 0,00</div>
+                        </div>
+                    </div>
+                    <!-- ✅ CARD A RECEBER - CLICÁVEL -->
+                    <div class="col-6 col-md-3">
+                        <div class="card-financeiro card-financeiro-clickable" style="border-left-color: #ffc107;" onclick="abrirListaFinanceiro('areceber')" title="Clique para ver os clientes que ainda não pagaram">
+                            <div class="stat-label">A Receber</div>
+                            <div class="stat-val text-warning" id="finPendente">R$ 0,00</div>
+                        </div>
+                    </div>
                     <div class="col-6 col-md-3"><div class="card-financeiro" style="border-left-color: #0dcaf0;"><div class="stat-label">Total Clientes</div><div class="stat-val text-info" id="finTotalClientes">0</div></div></div>
-                    <div class="col-6 col-md-3"><div class="card-financeiro" style="border-left-color: #00ff00;"><div class="stat-label">Lucro Geral</div><div class="stat-val" id="finGeral" style="color: #00ff00;">R$ 0,00</div></div></div>
+                    <!-- ✅ CARD LUCRO GERAL - CLICÁVEL -->
+                    <div class="col-6 col-md-3">
+                        <div class="card-financeiro card-financeiro-clickable" style="border-left-color: #00ff00;" onclick="abrirListaFinanceiro('geral')" title="Clique para ver todos os clientes cadastrados">
+                            <div class="stat-label">Lucro Geral</div>
+                            <div class="stat-val" id="finGeral" style="color: #00ff00;">R$ 0,00</div>
+                        </div>
+                    </div>
                 </div>
                 <hr class="border-secondary">
             </div>
@@ -1272,17 +1321,19 @@
             <!-- VIEW: DASHBOARD -->
             <div class="desktop-view active" id="desktopView-dashboard">
                 <div class="desktop-stats-grid">
-                    <div class="desktop-stat-card">
+                    <!-- ✅ CARD RECEBIDO - CLICÁVEL -->
+                    <div class="desktop-stat-card desktop-stat-card-clickable" onclick="abrirListaFinanceiro('recebido')" title="Clique para ver os clientes que pagaram neste mês">
                         <div class="stat-icon green"><i class="bi bi-cash-stack"></i></div>
                         <div class="stat-title">Recebido (Mês)</div>
                         <div class="stat-value" id="deskFinRecebido">R$ 0,00</div>
-                        <div class="stat-sub">Atualizado em tempo real</div>
+                        <div class="stat-sub">Clique para ver a lista</div>
                     </div>
-                    <div class="desktop-stat-card">
+                    <!-- ✅ CARD A RECEBER - CLICÁVEL -->
+                    <div class="desktop-stat-card desktop-stat-card-clickable" onclick="abrirListaFinanceiro('areceber')" title="Clique para ver os clientes que ainda não pagaram">
                         <div class="stat-icon yellow"><i class="bi bi-hourglass-split"></i></div>
                         <div class="stat-title">A Receber</div>
                         <div class="stat-value" id="deskFinPendente">R$ 0,00</div>
-                        <div class="stat-sub">Pendente de pagamento</div>
+                        <div class="stat-sub">Clique para ver a lista</div>
                     </div>
                     <div class="desktop-stat-card">
                         <div class="stat-icon cyan"><i class="bi bi-people-fill"></i></div>
@@ -1290,11 +1341,12 @@
                         <div class="stat-value" id="deskFinTotalClientes">0</div>
                         <div class="stat-sub">Clientes ativos</div>
                     </div>
-                    <div class="desktop-stat-card">
+                    <!-- ✅ CARD LUCRO GERAL - CLICÁVEL -->
+                    <div class="desktop-stat-card desktop-stat-card-clickable" onclick="abrirListaFinanceiro('geral')" title="Clique para ver todos os clientes cadastrados">
                         <div class="stat-icon purple"><i class="bi bi-graph-up-arrow"></i></div>
                         <div class="stat-title">Lucro Geral</div>
                         <div class="stat-value" id="deskFinGeral">R$ 0,00</div>
-                        <div class="stat-sub">Faturamento total</div>
+                        <div class="stat-sub">Clique para ver a lista</div>
                     </div>
                 </div>
 
@@ -1689,6 +1741,29 @@
     </div>
 </div>
 
+<!-- ✅ NOVO MODAL: LISTA FINANCEIRO (Recebido / A Receber / Geral) -->
+<div class="modal fade" id="modalListaFinanceiro" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content bg-dark text-white" style="border: 1px solid #333;">
+            <div class="modal-header border-secondary">
+                <div>
+                    <h5 class="modal-title" id="listaFinTitulo">📋 Lista Financeira</h5>
+                    <small class="text-secondary" id="listaFinSubtitulo"></small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="fintech-card text-center mb-3" style="border-left: 4px solid #9933ff;">
+                    <div class="fintech-stat-label">Total da Lista</div>
+                    <div class="fintech-stat-value" id="listaFinTotal" style="color:#00ff00;">R$ 0,00</div>
+                    <div class="small text-secondary mt-1" id="listaFinCount">0 clientes</div>
+                </div>
+                <div id="listaFinClientes"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal BANCO ITV -->
 <div class="modal fade modal-banco-itv" id="modalBancoItv" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -2000,6 +2075,121 @@
                 <span>🔥 ${config.nomePainel3}</span>
                 <span class="badge-creditos">${config.credZeus || 0}</span>
             </button>`;
+        }
+    }
+
+    // =========================================================================
+    // ✅ NOVAS FUNÇÕES - LISTA FINANCEIRO (Recebido / A Receber / Geral)
+    // =========================================================================
+    function formatarMesBR(mesISO) {
+        if (!mesISO) return '';
+        const [ano, mes] = mesISO.split('-');
+        const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+        return `${meses[parseInt(mes)-1]}/${ano}`;
+    }
+
+    function abrirListaFinanceiro(tipo) {
+        if (!usuarioLogadoUid) return;
+
+        const dataFiltro = document.getElementById('filterMes') ? document.getElementById('filterMes').value : '';
+        const mesFiltro = dataFiltro.slice(0, 7);
+
+        let lista = [];
+        let titulo = '';
+        let subtitulo = '';
+        let corTotal = '#00ff00';
+
+        if (tipo === 'recebido') {
+            titulo = '💰 Recebido (Mês)';
+            subtitulo = `Clientes que efetuaram pagamento em ${mesFiltro ? formatarMesBR(mesFiltro) : 'todos os períodos'}`;
+            clientes.forEach(c => {
+                if (c.status === 'deletado') return;
+                if (!c.ultimoPagamento) return;
+                const dataPag = new Date(c.ultimoPagamento);
+                const mesPag = `${dataPag.getFullYear()}-${String(dataPag.getMonth() + 1).padStart(2, '0')}`;
+                if (!mesFiltro || mesPag === mesFiltro) lista.push(c);
+            });
+        } else if (tipo === 'areceber') {
+            titulo = '⏳ A Receber';
+            subtitulo = `Clientes que ainda não efetuaram pagamento em ${mesFiltro ? formatarMesBR(mesFiltro) : 'todos os períodos'}`;
+            corTotal = '#ffc107';
+            clientes.forEach(c => {
+                if (c.status === 'deletado') return;
+                let mesPag = '';
+                if (c.ultimoPagamento) {
+                    const dataPag = new Date(c.ultimoPagamento);
+                    mesPag = `${dataPag.getFullYear()}-${String(dataPag.getMonth() + 1).padStart(2, '0')}`;
+                }
+                if (mesFiltro && mesPag !== mesFiltro) lista.push(c);
+                else if (!mesFiltro) lista.push(c);
+            });
+        } else if (tipo === 'geral') {
+            titulo = '💵 Lucro Geral';
+            subtitulo = 'Todos os clientes cadastrados';
+            clientes.forEach(c => {
+                if (c.status === 'deletado') return;
+                lista.push(c);
+            });
+        }
+
+        document.getElementById('listaFinTitulo').innerText = titulo;
+        document.getElementById('listaFinSubtitulo').innerText = subtitulo;
+
+        // Ordenar alfabeticamente
+        lista.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+
+        let total = 0;
+        let html = '';
+        lista.forEach(c => {
+            const valor = parseFloat(c.valor) || 0;
+            total += valor;
+            const dataExib = c.data ? c.data.split('-').reverse().join('/') : '-';
+            let dataPagExib = '';
+            if (c.ultimoPagamento) {
+                const dp = new Date(c.ultimoPagamento);
+                dataPagExib = `${String(dp.getDate()).padStart(2,'0')}/${String(dp.getMonth()+1).padStart(2,'0')}/${dp.getFullYear()}`;
+            }
+            let statusBadge = '';
+            if (c.status === 'apagar') statusBadge = '<span class="badge bg-info ms-1" style="font-size:0.6rem;">A RECEBER</span>';
+            else if (c.status === 'ativo') statusBadge = '<span class="badge bg-success ms-1" style="font-size:0.6rem;">ATIVO</span>';
+
+            html += `
+                <div class="lista-fin-item" onclick="fecharEabrirCliente('${c.id}')">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <strong style="font-size:0.92rem;">${c.nome || 'Sem Nome'}</strong>${statusBadge}
+                        </div>
+                        <span class="badge bg-success" style="font-size:0.72rem;">R$ ${valor.toFixed(2)}</span>
+                    </div>
+                    <div class="cliente-info" style="margin-top:2px;">
+                        <div class="info-item"><span class="info-label">Usuário:</span><span class="info-value">${c.user || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">Vence:</span><span class="info-value">${dataExib}</span></div>
+                        ${dataPagExib ? `<div class="info-item info-full"><span class="info-label">Pago em:</span><span class="info-value text-success">${dataPagExib}</span></div>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        const totalEl = document.getElementById('listaFinTotal');
+        totalEl.innerText = `R$ ${total.toFixed(2)}`;
+        totalEl.style.color = corTotal;
+        document.getElementById('listaFinCount').innerText = `${lista.length} cliente${lista.length === 1 ? '' : 's'}`;
+        document.getElementById('listaFinClientes').innerHTML = html || '<div class="lista-fin-empty"><i class="bi bi-inbox" style="font-size:2rem; display:block; margin-bottom:8px;"></i>Nenhum cliente encontrado.</div>';
+
+        new bootstrap.Modal(document.getElementById('modalListaFinanceiro')).show();
+    }
+
+    function fecharEabrirCliente(id) {
+        const modalEl = document.getElementById('modalListaFinanceiro');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) {
+            modalEl.addEventListener('hidden.bs.modal', function handler() {
+                modalEl.removeEventListener('hidden.bs.modal', handler);
+                setTimeout(() => abrirAcoesCliente(id), 80);
+            });
+            modal.hide();
+        } else {
+            abrirAcoesCliente(id);
         }
     }
 
@@ -3280,6 +3470,10 @@
     window.atualizarDisplayCreditoDesktop = atualizarDisplayCreditoDesktop;
     window.saveRevendaDesktop = saveRevendaDesktop;
     window.renderRevendasDesktop = renderRevendasDesktop;
+
+    // ✅ NOVAS FUNÇÕES EXPORTADAS (Lista Financeiro)
+    window.abrirListaFinanceiro = abrirListaFinanceiro;
+    window.fecharEabrirCliente = fecharEabrirCliente;
 </script>
 </body>
 </html>
