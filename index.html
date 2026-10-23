@@ -1902,6 +1902,24 @@
     let viewPrincipal = 'clientes';
 
     // =========================================================================
+    // ✅ HELPER: Verifica se um cliente está EXPIRADO
+    // Regras: status não pode ser 'deletado' nem 'apagar', e a data de vencimento
+    // deve ser anterior a hoje (diffDays < 0).
+    // =========================================================================
+    function isClienteExpirado(c) {
+        if (!c || !c.data) return false;
+        if (c.status === 'deletado' || c.status === 'apagar') return false;
+        let partes = c.data.split('-');
+        if (partes.length !== 3) return false;
+        let dataVenc = new Date(partes[0], partes[1] - 1, partes[2]);
+        dataVenc.setHours(0, 0, 0, 0);
+        let hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        let diffDays = Math.ceil((dataVenc - hoje) / (1000 * 3600 * 24));
+        return diffDays < 0;
+    }
+
+    // =========================================================================
     // DETECÇÃO DE DISPOSITIVO - Ativa modo desktop se tela >= 992px
     // =========================================================================
     function detectarDispositivo() {
@@ -1913,20 +1931,6 @@
     }
     detectarDispositivo();
     window.addEventListener('resize', detectarDispositivo);
-
-    // =========================================================================
-    // ✅ NOVO HELPER: Verifica se o cliente está EXPIRADO (data de vencimento no passado)
-    // =========================================================================
-    function isClienteExpirado(c) {
-        if (!c || !c.data) return false;
-        const partes = c.data.split('-');
-        if (partes.length !== 3) return false;
-        const dataVenc = new Date(partes[0], partes[1] - 1, partes[2]);
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        dataVenc.setHours(0, 0, 0, 0);
-        return dataVenc < hoje;
-    }
 
     // =========================================================================
     // FUNÇÕES DE NAVEGAÇÃO MOBILE
@@ -2032,18 +2036,19 @@
 
     // =========================================================================
     // FUNÇÕES DESKTOP - FINANCEIRO
+    // ✅ Clientes EXPIRADOS são excluídos de Lucro Geral e A Receber
     // =========================================================================
     function renderFinanceiroDesktop() {
         const dataFiltro = document.getElementById('filterMes') ? document.getElementById('filterMes').value : '';
         const mesFiltro = dataFiltro.slice(0, 7); 
         let recebidoMes = 0;
         let totalGeral = 0;
+        let aReceber = 0;
         let totalActive = 0;
         
         clientes.forEach(c => {
             if(c.status !== 'deletado') {
                 let val = parseFloat(c.valor) || 0;
-                totalGeral += val;
                 totalActive++;
                 
                 let mesPagamentoLocal = "";
@@ -2054,13 +2059,20 @@
                     mesPagamentoLocal = `${ano}-${mes}`;
                 }
                 
-                if(!mesFiltro || mesPagamentoLocal === mesFiltro) {
+                let pagouEsteMes = (!mesFiltro || mesPagamentoLocal === mesFiltro);
+                if (pagouEsteMes) {
                     recebidoMes += val;
+                }
+                
+                // ✅ Clientes EXPIRADOS não entram em Lucro Geral nem em A Receber
+                if (!isClienteExpirado(c)) {
+                    totalGeral += val;
+                    if (!pagouEsteMes) {
+                        aReceber += val;
+                    }
                 }
             }
         });
-        
-        let aReceber = totalGeral - recebidoMes;
         
         document.getElementById('deskFinRecebido').innerText = `R$ ${recebidoMes.toFixed(2)}`;
         document.getElementById('deskFinPendente').innerText = `R$ ${aReceber.toFixed(2)}`;
@@ -2093,7 +2105,8 @@
     }
 
     // =========================================================================
-    // ✅ LISTA FINANCEIRO - Agora exclui EXPIRADOS de "A RECEBER" e "LUCRO GERAL"
+    // ✅ FUNÇÕES - LISTA FINANCEIRO (Recebido / A Receber / Geral)
+    // ✅ Clientes EXPIRADOS excluídos de A Receber e Lucro Geral
     // =========================================================================
     function formatarMesBR(mesISO) {
         if (!mesISO) return '';
@@ -2125,11 +2138,11 @@
             });
         } else if (tipo === 'areceber') {
             titulo = '⏳ A Receber';
-            subtitulo = `Clientes em dia que ainda não pagaram em ${mesFiltro ? formatarMesBR(mesFiltro) : 'todos os períodos'} (expirados excluídos)`;
+            subtitulo = `Clientes ativos que ainda não efetuaram pagamento em ${mesFiltro ? formatarMesBR(mesFiltro) : 'todos os períodos'}`;
             corTotal = '#ffc107';
             clientes.forEach(c => {
                 if (c.status === 'deletado') return;
-                // ✅ NOVO: Exclui clientes EXPIRADOS da lista "A Receber"
+                // ✅ Clientes EXPIRADOS não entram em A Receber
                 if (isClienteExpirado(c)) return;
                 let mesPag = '';
                 if (c.ultimoPagamento) {
@@ -2141,10 +2154,10 @@
             });
         } else if (tipo === 'geral') {
             titulo = '💵 Lucro Geral';
-            subtitulo = 'Clientes ativos e em dia (expirados excluídos)';
+            subtitulo = 'Todos os clientes ativos (excluindo expirados)';
             clientes.forEach(c => {
                 if (c.status === 'deletado') return;
-                // ✅ NOVO: Exclui clientes EXPIRADOS da lista "Lucro Geral"
+                // ✅ Clientes EXPIRADOS não entram em Lucro Geral
                 if (isClienteExpirado(c)) return;
                 lista.push(c);
             });
@@ -3180,7 +3193,9 @@
     }
     
     // =========================================================================
-    // ✅ RENOVAR CLIENTE - Se EXPIRADO, renova com a data do dia atual
+    // ✅ RENOVAR CLIENTE
+    // Se o cliente estiver EXPIRADO → renova a partir de HOJE (hoje + 1 mês)
+    // Se estiver ativo/a vencer → renova a partir da data atual do cliente
     // =========================================================================
     function renovarCliente(id) {
         const cliente = clientes.find(c => c.id === id);
@@ -3190,11 +3205,11 @@
 
         let novaDataISO = "";
         
-        // ✅ NOVO: Se o cliente está EXPIRADO, renova a partir da data do dia atual
+        // ✅ Se o cliente está EXPIRADO, renova a partir do dia atual
         if (isClienteExpirado(cliente)) {
             novaDataISO = addOneMonthFromToday();
         } else if (cliente.data) {
-            // Cliente em dia: adiciona 1 mês à data de vencimento existente
+            // Cliente ativo/a vencer: mantém o comportamento antigo (adiciona 1 mês à data atual)
             let partes = cliente.data.split('-');
             if (partes.length === 3) {
                 let dataBase = new Date(partes[0], partes[1] - 1, partes[2]);
@@ -3391,6 +3406,10 @@
         else alert("Telefone não informado.");
     }
     
+    // =========================================================================
+    // ✅ FINANCEIRO MOBILE
+    // ✅ Clientes EXPIRADOS são excluídos de Lucro Geral e A Receber
+    // =========================================================================
     function renderFinanceiro() {
         const filterMesEl = document.getElementById('filterMes');
         if (!filterMesEl) return;
@@ -3398,12 +3417,12 @@
         const mesFiltro = dataFiltro.slice(0, 7); 
         let recebidoMes = 0;
         let totalGeral = 0;
+        let aReceber = 0;
         let totalActive = 0;
         
         clientes.forEach(c => {
             if(c.status !== 'deletado') {
                 let val = parseFloat(c.valor) || 0;
-                totalGeral += val;
                 totalActive++;
                 
                 let mesPagamentoLocal = "";
@@ -3417,10 +3436,16 @@
                 if(mesPagamentoLocal === mesFiltro) {
                     recebidoMes += val;
                 }
+                
+                // ✅ Clientes EXPIRADOS não entram em Lucro Geral nem em A Receber
+                if (!isClienteExpirado(c)) {
+                    totalGeral += val;
+                    if (mesPagamentoLocal !== mesFiltro) {
+                        aReceber += val;
+                    }
+                }
             }
         });
-        
-        let aReceber = totalGeral - recebidoMes;
         
         document.getElementById('finRecebido').innerText = `R$ ${recebidoMes.toFixed(2)}`;
         document.getElementById('finPendente').innerText = `R$ ${aReceber.toFixed(2)}`;
@@ -3497,10 +3522,9 @@
     window.saveRevendaDesktop = saveRevendaDesktop;
     window.renderRevendasDesktop = renderRevendasDesktop;
 
-    // Lista Financeiro
+    // ✅ FUNÇÕES EXPORTADAS (Lista Financeiro)
     window.abrirListaFinanceiro = abrirListaFinanceiro;
     window.fecharEabrirCliente = fecharEabrirCliente;
-    window.isClienteExpirado = isClienteExpirado;
 </script>
 </body>
 </html>
