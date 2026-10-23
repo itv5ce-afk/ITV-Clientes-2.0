@@ -1915,6 +1915,20 @@
     window.addEventListener('resize', detectarDispositivo);
 
     // =========================================================================
+    // ✅ NOVO HELPER: Verifica se o cliente está EXPIRADO (data de vencimento no passado)
+    // =========================================================================
+    function isClienteExpirado(c) {
+        if (!c || !c.data) return false;
+        const partes = c.data.split('-');
+        if (partes.length !== 3) return false;
+        const dataVenc = new Date(partes[0], partes[1] - 1, partes[2]);
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        dataVenc.setHours(0, 0, 0, 0);
+        return dataVenc < hoje;
+    }
+
+    // =========================================================================
     // FUNÇÕES DE NAVEGAÇÃO MOBILE
     // =========================================================================
     function mudarViewPrincipal(view) {
@@ -2079,7 +2093,7 @@
     }
 
     // =========================================================================
-    // ✅ NOVAS FUNÇÕES - LISTA FINANCEIRO (Recebido / A Receber / Geral)
+    // ✅ LISTA FINANCEIRO - Agora exclui EXPIRADOS de "A RECEBER" e "LUCRO GERAL"
     // =========================================================================
     function formatarMesBR(mesISO) {
         if (!mesISO) return '';
@@ -2111,10 +2125,12 @@
             });
         } else if (tipo === 'areceber') {
             titulo = '⏳ A Receber';
-            subtitulo = `Clientes que ainda não efetuaram pagamento em ${mesFiltro ? formatarMesBR(mesFiltro) : 'todos os períodos'}`;
+            subtitulo = `Clientes em dia que ainda não pagaram em ${mesFiltro ? formatarMesBR(mesFiltro) : 'todos os períodos'} (expirados excluídos)`;
             corTotal = '#ffc107';
             clientes.forEach(c => {
                 if (c.status === 'deletado') return;
+                // ✅ NOVO: Exclui clientes EXPIRADOS da lista "A Receber"
+                if (isClienteExpirado(c)) return;
                 let mesPag = '';
                 if (c.ultimoPagamento) {
                     const dataPag = new Date(c.ultimoPagamento);
@@ -2125,9 +2141,11 @@
             });
         } else if (tipo === 'geral') {
             titulo = '💵 Lucro Geral';
-            subtitulo = 'Todos os clientes cadastrados';
+            subtitulo = 'Clientes ativos e em dia (expirados excluídos)';
             clientes.forEach(c => {
                 if (c.status === 'deletado') return;
+                // ✅ NOVO: Exclui clientes EXPIRADOS da lista "Lucro Geral"
+                if (isClienteExpirado(c)) return;
                 lista.push(c);
             });
         }
@@ -3161,6 +3179,9 @@
         return dataISO;
     }
     
+    // =========================================================================
+    // ✅ RENOVAR CLIENTE - Se EXPIRADO, renova com a data do dia atual
+    // =========================================================================
     function renovarCliente(id) {
         const cliente = clientes.find(c => c.id === id);
         if(!cliente) return;
@@ -3168,7 +3189,12 @@
         if(!consumirCredito(painel)) return;
 
         let novaDataISO = "";
-        if (cliente.data) {
+        
+        // ✅ NOVO: Se o cliente está EXPIRADO, renova a partir da data do dia atual
+        if (isClienteExpirado(cliente)) {
+            novaDataISO = addOneMonthFromToday();
+        } else if (cliente.data) {
+            // Cliente em dia: adiciona 1 mês à data de vencimento existente
             let partes = cliente.data.split('-');
             if (partes.length === 3) {
                 let dataBase = new Date(partes[0], partes[1] - 1, partes[2]);
@@ -3471,9 +3497,10 @@
     window.saveRevendaDesktop = saveRevendaDesktop;
     window.renderRevendasDesktop = renderRevendasDesktop;
 
-    // ✅ NOVAS FUNÇÕES EXPORTADAS (Lista Financeiro)
+    // Lista Financeiro
     window.abrirListaFinanceiro = abrirListaFinanceiro;
     window.fecharEabrirCliente = fecharEabrirCliente;
+    window.isClienteExpirado = isClienteExpirado;
 </script>
 </body>
 </html>
